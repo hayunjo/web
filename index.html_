@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>hayunjo</title>
+</head>
+<body>
+	<!--
+	<img id="cloking" src="cloking.png" alt="cloking" />
+	<img id="image" src="image.png" alt="image" />
+	-->
+	<h1>책 검색</h1>
+	<input id="search" type="text" />
+	<button id="submit">검색</button>
+	<br />
+	<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+	<script>
+		$("#submit").click(function(){
+			$.ajax({
+				method: "GET",
+				url: "https://dapi.kakao.com/v3/search/book?target=title&query=" + $("#search").val(),
+				headers: {Authorization: "KakaoAK 55d561bc1bc3888e6a2a1d3bef5d25c0"}
+			}).done(function(data){
+				$("body").append("<span>" + data.documents[0].title + "</span>");
+				$("body").append("<img src=" + data.documents[0].thumbnail + "/>");
+			});
+		});
+	</script>
+</body>
+</html>
