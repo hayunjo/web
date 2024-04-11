@@ -3,61 +3,117 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
 	<title>동물상테스트</title>
 </head>
 <body>
-	<div>Teachable Machine Image Model</div>
-	<button type="button" onclick="init()">Start</button>
-	<div id="webcam-container"></div>
-	<div id="label-container"></div>
+	<div>
+        <h1>동물상테스트</h1>
+        <h3>얼굴로 보는 인공지능 동물상 테스트</h3>
+    </div>
+    <div class="container">
+        <div id="upload-area" class="area">
+            <span>---</span>
+            <br />
+            <span>사진을 올려놓거나 눌러서 업로드 해 주세요</span>
+            <input id="upload-input" style="display: none;" type="file" accept="image/*" onchange="readFile(this.files[0]);" />
+        </div>
+        <div id="loading-area" style="display: none;" class="area">
+            <span>---</span>
+            <br />
+            <span>모델을 로딩 중입니다</span>
+        </div>
+        <div id="result-area" style="display: none" class="area">
+            <img id="upload-image" src="#" alt="your image" />
+            <div id="label-container"></div>
+        </div>
+        <div id="retry-area" style="display: none;" class="area">
+            <span>다른 사진으로 테스트하려면 눌러 주세요</span>
+        </div>
+    </div>
 	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 	<script type="text/javascript">
-		// More API functions here:
-		// https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-	
-		// the link to your model provided by Teachable Machine export panel
 		const URL = "https://teachablemachine.withgoogle.com/models/f_PETdNcq/";
-	
 		let model, webcam, labelContainer, maxPredictions;
+        let isModelReady = false;
+        let input = document.getElementById("upload-input");
+        let image = document.getElementById("upload-image");
+        let uploadArea = document.getElementById("upload-area");
+        let loadingArea = document.getElementById("loading-area");
+        let resultArea = document.getElementById("result-area");
+        let retryArea = document.getElementById("retry-area");
+        const reader = new FileReader();
+
+        async function readFile(file) {
+            uploadArea.style.display = "none";
+            if(isModelReady === false){
+                loadingArea.style.display = "block";
+                await init();
+            }
+            reader.readAsDataURL(file);
+        }
 	
-		// Load the image model and setup the webcam
-		async function init() {
-			const modelURL = URL + "model.json";
-			const metadataURL = URL + "metadata.json";
-	
-			// load the model and metadata
-			// Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-			// or files from your local hard drive
-			// Note: the pose library adds "tmImage" object to your window (window.tmImage)
-			model = await tmImage.load(modelURL, metadataURL);
-			maxPredictions = model.getTotalClasses();
-	
-			// Convenience function to setup a webcam
-			const flip = true; // whether to flip the webcam
-			webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-			await webcam.setup(); // request access to the webcam
-			await webcam.play();
-			window.requestAnimationFrame(loop);
-	
-			// append elements to the DOM
-			document.getElementById("webcam-container").appendChild(webcam.canvas);
-			labelContainer = document.getElementById("label-container");
-			for (let i = 0; i < maxPredictions; i++) { // and class labels
-				labelContainer.appendChild(document.createElement("div"));
-			}
-		}
-	
-		async function loop() {
-			webcam.update(); // update the webcam frame
-			await predict();
-			window.requestAnimationFrame(loop);
-		}
+        reader.onload = async function(event) {
+            await image.setAttribute('src', event.target.result);
+            await predict();
+            loadingArea.style.display = "none";
+            resultArea.style.display = "block";
+            retryArea.style.display = "block";
+        };
+
+        uploadArea.onclick = function() {
+            input.click();
+        }
+
+        uploadArea.ondragover = function(event) {
+            event.preventDefault();
+        }
+
+        uploadArea.ondrop = function(event) {
+            event.preventDefault(event);
+            const file = event.dataTransfer.files[0];
+            readFile(file);
+        }
+
+        retryArea.onclick = function() {
+            retryArea.style.display = "none";
+            resultArea.style.display = "none";
+            uploadArea.style.display = "block";
+            input.value = "";
+        }
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            //const flip = true; // whether to flip the webcam
+            //webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+            //await webcam.setup(); // request access to the webcam
+            //await webcam.play();
+            //window.requestAnimationFrame(loop);
+
+            //document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) { // and class labels
+                labelContainer.appendChild(document.createElement("div"));
+            }
+            isModelReady = true;
+        }
+
+		//async function loop() {
+		//	webcam.update(); // update the webcam frame
+		//	await predict();
+		//	window.requestAnimationFrame(loop);
+		//}
 	
 		// run the webcam image through the image model
 		async function predict() {
 			// predict can take in an image, video or canvas html element
-			const prediction = await model.predict(webcam.canvas);
+			const prediction = await model.predict(image);
 			for (let i = 0; i < maxPredictions; i++) {
 				const classPrediction =
 					prediction[i].className + ": " + prediction[i].probability.toFixed(2);
